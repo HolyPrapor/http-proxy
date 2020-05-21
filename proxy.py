@@ -1,10 +1,9 @@
-import socket
-import threading
-import signal
-import sys
-import re
-from http import HTTPStatus
 import argparse
+import re
+import signal
+import socket
+import sys
+import threading
 
 HOST_NAME = "127.0.0.1"
 BIND_PORT = 12345
@@ -18,12 +17,16 @@ filters = "filters.txt"
 def handle_browser_request(connection_socket):
     request = connection_socket.recv(MAX_REQUEST_LEN).decode('utf8')
 
+    if not len(request):
+        return
+
     url, webserver, port = extract_config_from_request(request)
 
     with open(filters, 'r') as f:
         for line in filter(lambda x: len(x), f.readlines()):
-            if re.match(rf'{line}', url):
-                connection_socket.sendall(HTTPStatus.FORBIDDEN)
+            if re.findall(rf'{line.rstrip()}', url):
+                connection_socket.sendall("HTTP/1.1 403 Forbidden\r\n"
+                                          "Connection: Closed\r\n".encode('utf8'))
                 return
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -42,7 +45,6 @@ def handle_browser_request(connection_socket):
 def extract_config_from_request(request):
     first_line = request.split('\n')[0]
     splitted_line = first_line.split(' ')
-
     request_type = splitted_line[0]
 
     url = splitted_line[1]
