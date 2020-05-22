@@ -25,14 +25,19 @@ def handle_browser_request(connection_socket):
     with open(filters, 'r') as f:
         for line in filter(lambda x: len(x), f.readlines()):
             if re.findall(rf'{line.rstrip()}', url):
-                connection_socket.sendall("HTTP/1.1 403 Forbidden\r\n"
-                                          "Connection: Closed\r\n".encode('utf8'))
+                connection_socket.sendall("HTTP/1.1 403 "
+                                          "Forbidden\r\nConnection: "
+                                          "Closed\r\n".encode('utf8'))
                 return
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(CONNECTION_TIMEOUT)
-    s.connect((webserver, port))
-    s.sendall(request.encode('utf8'))
+    try:
+        s.connect((webserver, port))
+        s.sendall(request.encode('utf8'))
+    except socket.error:
+        connection_socket.sendall(b'')
+        return
 
     data = b''
     buffer = b'stub'
